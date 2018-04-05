@@ -1,0 +1,96 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<div class="jumbotron">
+    <h1>PDF Fast And Furious</h1>
+    <input type="text" class="form-control" id="texto" />
+    <input type="file" value="Arquivo" id="arquivo" />
+    <button type="button" class="btn btn-default" id="enviar">Enviar</button>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <canvas id="the-canvas"></canvas>
+    </div>
+</div>
+
+@section scripts
+{
+    <script>
+
+
+        function parse(res) {
+            debugger;
+
+            var pdfData = atob(
+                res.data);
+
+            var pdfjsLib = window['pdfjs-dist/build/pdf'];
+
+            // The workerSrc property shall be specified.
+            pdfjsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
+
+            // Using DocumentInitParameters object to load binary data.
+            var loadingTask = pdfjsLib.getDocument({ data: pdfData });
+            loadingTask.promise.then(function (pdf) {
+                console.log('PDF loaded');
+
+                // Fetch the first page
+                var pageNumber = 1;
+                pdf.getPage(pageNumber).then(function (page) {
+                    console.log('Page loaded');
+
+                    var scale = 1.5;
+                    var viewport = page.getViewport(scale);
+
+                    // Prepare canvas using PDF page dimensions
+                    var canvas = document.getElementById('the-canvas');
+                    var context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    // Render PDF page into canvas context
+                    var renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    var renderTask = page.render(renderContext);
+                    renderTask.then(function () {
+                        console.log('Page rendered');
+                    });
+                });
+            }, function (reason) {
+                // PDF loading error
+                console.error(reason);
+            });
+        }
+        function enviar(evt) {
+            var inputArquivo = $("#arquivo");
+            var inputTexto = $("#texto");
+            var ele = $(evt.currentTarget);
+
+
+            var formData = new FormData();
+            formData.append("arquivo", inputArquivo.get(0).files[0]);
+            formData.append("texto", inputTexto.val());
+            var options = {
+                processData: false,
+                contentType: false,
+                dataType: undefined,
+                method: "POST",
+                data: formData,
+                url: "/Home/ParsePdf",
+                success: parse
+            };
+            debugger;
+            $.ajax(options);
+        };
+
+
+        $(function () {
+
+            $(document).on("click", "#enviar", enviar);
+        });
+    </script>
+}
